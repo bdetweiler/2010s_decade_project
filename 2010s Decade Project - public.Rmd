@@ -1,0 +1,487 @@
+---
+title: "2010s Decade Project"
+author: "Brian Detweiler"
+date: "January 25, 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, include = FALSE, cache = TRUE, fig.height=3, fig.width=4, fig.align="center", error=FALSE, debug=FALSE, info=FALSE, warning=FALSE, message=FALSE)
+library(tidyverse)
+library(lubridate)
+library(grid)
+library(ggplot2)
+
+daysInYear <- function(year) {
+  if (leap_year(year))
+  {
+    return(366);
+  } else {
+    return(365);
+  }
+}
+```
+
+```{r read.data}
+location.df <- read_csv('data/2010s Decade Stats - Location.csv')
+music.df <- read_csv('data/2010s Decade Stats - Music.csv')
+concerts.df <- read_csv('data/2010s Decade Stats - Concerts.csv')
+tattoos.df <- read_csv('data/2010s Decade Stats - Tattoos.csv')
+races.df <- read_csv('data/2010s Decade Stats - Races.csv')
+weight.df <- read_csv('data/2010s Decade Stats - Weight.csv')
+happiness.df <- read_csv('data/2010s Decade Stats - Happiness.csv')
+```
+
+```{r clean.data}
+location.df <- location.df %>% mutate(Date = as.Date(Date, format = "%m/%d/%Y")) %>% 
+  mutate(Year=as.factor(lubridate::year(as.POSIXlt(Date)))) %>%
+  mutate(Month=as.factor(lubridate::month(as.POSIXlt(Date), label=TRUE, abbr=TRUE))) %>%
+  mutate(Day=as.factor(lubridate::wday(as.POSIXlt(Date), label=TRUE, abbr=TRUE, week_start=1))) %>%
+  mutate(Away=as.integer(City != 'Omaha'))
+
+music.df <- music.df %>%
+  mutate(Date = as.Date(Date, format = "%m/%d/%Y")) %>%
+  mutate(Year=as.factor(lubridate::year(as.POSIXlt(Date)))) %>%
+  mutate(Month=as.factor(lubridate::month(as.POSIXlt(Date), label=TRUE, abbr=TRUE))) %>%
+  mutate(Day=as.factor(lubridate::wday(as.POSIXlt(Date), label=TRUE, abbr=TRUE, week_start=1))) %>%
+  mutate(CityState=paste(City, State, sep=","))
+
+concerts.df <- concerts.df %>%
+  mutate(Date = as.Date(Date, format = "%m/%d/%Y")) %>%
+  mutate(Year=as.factor(lubridate::year(as.POSIXlt(Date)))) %>%
+  mutate(Month=as.factor(lubridate::month(as.POSIXlt(Date), label=TRUE, abbr=TRUE))) %>%
+  mutate(Day=as.factor(lubridate::wday(as.POSIXlt(Date), label=TRUE, abbr=TRUE, week_start=1))) %>%
+  mutate(CityState=paste(City, State, sep=","))
+
+bands.df <- music.df %>%
+  filter(Type == 'Concert') %>%
+  filter(Show != 'Brian Detweiler')
+
+tattoos.df <- tattoos.df %>%
+  mutate(Date = as.Date(Date, format = "%m/%d/%Y")) %>%
+  mutate(Year=as.factor(lubridate::year(as.POSIXlt(Date)))) %>%
+  mutate(Month=as.factor(lubridate::month(as.POSIXlt(Date), label=TRUE, abbr=TRUE))) %>%
+  mutate(Day=as.factor(lubridate::wday(as.POSIXlt(Date), label=TRUE, abbr=TRUE, week_start=1))) %>%
+  mutate(CityState=paste(City, State, sep=","))
+
+races.df <- races.df %>%
+  mutate(Date = as.Date(Date, format = "%m/%d/%Y")) %>%
+  mutate(Year=as.factor(lubridate::year(as.POSIXlt(Date)))) %>%
+  mutate(Month=as.factor(lubridate::month(as.POSIXlt(Date), label=TRUE, abbr=TRUE))) %>%
+  mutate(Day=as.factor(lubridate::wday(as.POSIXlt(Date), label=TRUE, abbr=TRUE, week_start=1))) %>%
+  mutate(CityState=paste(City, State, sep=","))
+
+weight.df <- weight.df %>%
+  mutate(Date = as.Date(Date, format = "%m/%d/%Y")) %>%
+  mutate(Year=as.factor(lubridate::year(as.POSIXlt(Date)))) %>%
+  mutate(Month=as.factor(lubridate::month(as.POSIXlt(Date), label=TRUE, abbr=TRUE))) %>%
+  mutate(Day=as.factor(lubridate::wday(as.POSIXlt(Date), label=TRUE, abbr=TRUE, week_start=1)))
+
+happiness.df <- happiness.df %>%
+  mutate(Date = as.Date(Date, format = "%m/%d/%Y")) %>%
+  mutate(Year=as.character(lubridate::year(as.POSIXlt(Date)))) %>%
+  mutate(Month=as.factor(lubridate::month(as.POSIXlt(Date), label=TRUE, abbr=TRUE))) %>%
+  mutate(Day=as.factor(lubridate::wday(as.POSIXlt(Date), label=TRUE, abbr=TRUE, week_start=1)))
+
+all.df <- left_join(happiness.df, location.df, by = "Date")
+all.df <- left_join(all.df, tattoos.df, by = "Date")
+all.df <- left_join(all.df, weight.df, by = "Date") 
+all.df <- left_join(all.df, races.df, by = "Date") 
+all.df <- left_join(all.df, races.df, by = "Date") 
+all.df <- left_join(all.df, concerts.df, by = "Date")
+
+all.df <- all.df %>%
+  mutate(Year=Year.x, Month=Month.x, Day=Day.x) %>%
+  mutate(City=City.x, State=State.x, CityState=CityState.x, Country=Country.x) %>%
+  select(-City.x, -City.x.x, -City.y, -City.y.y, -State.x, -State.x.x, -State.y, -State.y.y, -CityState.x, -CityState.y, -Country.x, -Country.y) %>%
+  select(-Year.x, -Year.x.x, -Year.x.x.x) %>%
+  select(-Year.y, -Year.y.y, -Year.y.y.y) %>%
+  select(-Month.x, -Month.x.x, -Month.x.x.x) %>%
+  select(-Month.y, -Month.y.y, -Month.y.y.y) %>%
+  select(-Day.x, -Day.x.x, -Day.x.x.x) %>%
+  select(-Day.y, -Day.y.y, -Day.y.y.y) %>%
+  select(-Price) %>%
+  mutate(GotTattoo=ifelse(is.na(Tattoo), 0, 1)) %>%
+  mutate(SawBand=ifelse(is.na(Show), 0, 1))
+
+```
+
+
+# Summary
+
+Using data I have captured over the last decade, I wanted to visualize my life. I assigned a Happiness value to each day,
+on a scale of -10 to 10. -10 is the most unhappy, and 10 is the happiest. Zero is baseline unemotional. This is an imperfect
+system, but it forms a heuristic for determining what actually makes me happy. 
+
+This version is a slightly redacted version suitable for public consumption. I'm not including health information, or anything
+else that might be a little too personal, but the happiness scores are the same. 
+
+Some of the things that make me the happiest (which I could tell you without looking at a chart) are traveling, music, running races, and getting new tattoos.
+
+Being fit is also a big happiness indicator, as I generally become more unhappy the heavier I get. One particular insight I gained from
+this project was just how effective ultra distance running has been at keeping weight off. The data really revealed this. My typical pattern 
+is to drop a bunch of weight throughout Spring and Summer, and then I yo-yo back up to 190 or 200 lbs. But through a slew of ultramarathons,
+my weight has trended steadily downward and stayed there.
+
+I also had a couple of my best races since I started ultrarunning. It has given me a level of training and fitness I never would have 
+achieved with the shorter road runs I have always done in the past.
+
+With all that said, each year in the last decade can be summarized with a mean Happiness score. 
+
+ * **2010 Happiness Score**: `r all.df %>% filter(Year == 2010) %>% summarise(HappinessAvg=mean(Happiness)) %>% pull(HappinessAvg)`
+ * **2011 Happiness Score**: `r all.df %>% filter(Year == 2011) %>% summarise(HappinessAvg=mean(Happiness)) %>% pull(HappinessAvg)`
+ * **2012 Happiness Score**: `r all.df %>% filter(Year == 2012) %>% summarise(HappinessAvg=mean(Happiness)) %>% pull(HappinessAvg)`
+ * **2013 Happiness Score**: `r all.df %>% filter(Year == 2013) %>% summarise(HappinessAvg=mean(Happiness)) %>% pull(HappinessAvg)`
+ * **2014 Happiness Score**: `r all.df %>% filter(Year == 2014) %>% summarise(HappinessAvg=mean(Happiness)) %>% pull(HappinessAvg)`
+ * **2015 Happiness Score**: `r all.df %>% filter(Year == 2015) %>% summarise(HappinessAvg=mean(Happiness)) %>% pull(HappinessAvg)`
+ * **2016 Happiness Score**: `r all.df %>% filter(Year == 2016) %>% summarise(HappinessAvg=mean(Happiness)) %>% pull(HappinessAvg)`
+ * **2017 Happiness Score**: `r all.df %>% filter(Year == 2017) %>% summarise(HappinessAvg=mean(Happiness)) %>% pull(HappinessAvg)`
+ * **2018 Happiness Score**: `r all.df %>% filter(Year == 2018) %>% summarise(HappinessAvg=mean(Happiness)) %>% pull(HappinessAvg)`
+ * **2019 Happiness Score**: `r all.df %>% filter(Year == 2019) %>% summarise(HappinessAvg=mean(Happiness)) %>% pull(HappinessAvg)`
+
+\pagebreak
+
+# Travel in the 2010s
+
+```{r location}
+# TODO: Get travel costs - flight costs, total trip costs, etc
+total.days.away <- location.df %>% pull(Away) %>% sum()
+total.days.in.decade <- location.df %>% nrow()
+
+total.days.away.2010 <- location.df %>% filter(Year == 2010) %>% pull(Away) %>% sum()
+total.days.away.2011 <- location.df %>% filter(Year == 2011) %>% pull(Away) %>% sum()
+total.days.away.2012 <- location.df %>% filter(Year == 2012) %>% pull(Away) %>% sum()
+total.days.away.2013 <- location.df %>% filter(Year == 2013) %>% pull(Away) %>% sum()
+total.days.away.2014 <- location.df %>% filter(Year == 2014) %>% pull(Away) %>% sum()
+total.days.away.2015 <- location.df %>% filter(Year == 2015) %>% pull(Away) %>% sum()
+total.days.away.2016 <- location.df %>% filter(Year == 2016) %>% pull(Away) %>% sum()
+total.days.away.2017 <- location.df %>% filter(Year == 2017) %>% pull(Away) %>% sum()
+total.days.away.2018 <- location.df %>% filter(Year == 2018) %>% pull(Away) %>% sum()
+total.days.away.2019 <- location.df %>% filter(Year == 2019) %>% pull(Away) %>% sum()
+
+```
+
+I haven't always been able to travel much. 2010-2017 I was encumbered by 10-15 vacation days a year. 
+I tended to hoard those and did my best to take them around long weekends. 
+In late 2017 through early 2019, I was a contractor without PTO, so I did my best to make up the hours while traveling as much as possible.
+
+| Year  | Days Away                    | Percentage Away                                 |
+|-------|------------------------------|-------------------------------------------------|
+| 2010  | `r total.days.away.2010`     | `r total.days.away.2010 / daysInYear(2010)`     |
+| 2011  | `r total.days.away.2011`     | `r total.days.away.2011 / daysInYear(2011)`     |
+| 2012  | `r total.days.away.2012`     | `r total.days.away.2012 / daysInYear(2012)`     |
+| 2013  | `r total.days.away.2013`     | `r total.days.away.2013 / daysInYear(2013)`     |
+| 2014  | `r total.days.away.2014`     | `r total.days.away.2014 / daysInYear(2014)`     |
+| 2015  | `r total.days.away.2015`     | `r total.days.away.2015 / daysInYear(2015)`     |
+| 2016  | `r total.days.away.2016`     | `r total.days.away.2016 / daysInYear(2016)`     |
+| 2017  | `r total.days.away.2017`     | `r total.days.away.2017 / daysInYear(2017)`     |
+| 2018  | **`r total.days.away.2018`** | **`r total.days.away.2018 / daysInYear(2018)`** |
+| 2019  | **`r total.days.away.2019`** | **`r total.days.away.2019 / daysInYear(2019)`** |
+|       |                              |                                                 |
+| Total | `r total.days.away`          | `r total.days.away / total.days.in.decade`      |
+
+Obviously Friday-Sunday are the prime travel days. They don't cost PTO. Monday is pretty high up there though. 
+I'd speculate that this is because I often will take Friday-Monday off, because the last day of a festival is
+usually Sunday, and I need Monday for travel. Also, observed holidays may fall on a Monday if the actual holiday
+is on a Sunday. It is clear that Tuesday-Thursday are not economical days for traveling unless I'm taking the
+entire week off.
+
+```{r location.counts, include=TRUE}
+
+location.df %>%
+  filter(Away == 1) %>%
+  ggplot(aes(x=Year)) +
+    geom_bar(aes(y=..count..)) +
+    # scale_fill_brewer(palette="Blues") +
+    xlab("Year") + 
+    ylab("Days traveling") +
+    ggtitle("Days traveling by year") + 
+    theme_bw() + 
+    theme(plot.title = element_text(size=12))
+
+location.df %>%
+  filter(Away == 1) %>%
+  ggplot(aes(x=Day)) +
+    geom_bar(aes(y=..count..)) +
+    # scale_fill_brewer(palette="Blues") +
+    xlab("Day of Week") + 
+    ylab("Days away") +
+    ggtitle("Days traveling by day of week") + 
+    theme_bw() + 
+    theme(plot.title = element_text(size=12))
+```
+
+```{r location.day.counts, include=TRUE, fig.height=4}
+traveling.by.year.by.day <- location.df %>%
+  filter(Away == 1) %>%
+  group_by(Year, Day) %>%
+  summarise(Away = sum(Away))
+
+traveling.by.year.by.month <- location.df %>%
+  filter(Away == 1) %>%
+  group_by(Year, Month) %>%
+  summarise(Away = sum(Away))
+
+traveling.by.month.by.day <- location.df %>%
+  filter(Away == 1) %>%
+  group_by(Month, Day) %>%
+  summarise(Away = sum(Away))
+
+traveling.by.year.by.day %>%
+  ggplot(aes(Day, Away, group=Year, colour=Year)) +
+    geom_jitter(stat="identity", width = 0.15) +
+    xlab("Day of Week") + 
+    ylab("Days away") +
+    ggtitle("Days traveling by day of week by year")
+```
+
+Clearly Baltimore is my most frequented city because of Maryland Deathfest, which I've been going to since 2014.
+Chicago comes in second
+because I love the city and because I've been to Riot Fest twice. Miami and Las Vegas are rising quickly though, and will likely
+overtake Chicago in a year or two.
+
+```{r travel.by.city, include=TRUE}
+# TODO: Get travel costs - flight costs, total trip costs, etc
+location.df %>% 
+  filter(Away == 1) %>%
+  group_by(City) %>%
+  summarise(Away = sum(Away)) %>%
+  arrange(Away) %>%
+  top_n(5) %>%
+  mutate(City=factor(City, levels=City)) %>%
+  ggplot(aes(City, Away)) +
+    geom_bar(stat="identity") +
+    xlab("City") + 
+    ylab("Days traveling") +
+    ggtitle("Days traveling by city (Top 5)") 
+```
+
+\pagebreak
+
+# Music
+
+I am almost always happy when seeing a show. A band I love, comedian, musical, whatever. Entertainment doesn't come around Omaha often,
+but when it does, I'm there. A couple things stick out here. 2012 was my second highest concert attendance. This is because I 
+did both The Fest and Barge to Hell, and there were a ton of local shows that year. 2018-2019 were high because I traveled a ton
+for festivals and also went to every one that came through Omaha.
+
+```{r music.processing}
+top.5.bands <- bands.df %>% 
+  select(Show) %>% 
+  count(Show) %>% 
+  arrange(desc(n)) %>%
+  top_n(5)
+
+bands.by.year.by.day <- bands.df %>%
+  group_by(Year, Day) %>%
+  summarise(Count = n())
+
+
+total.concerts <- bands.df %>% nrow()
+
+total.concerts.2010 <- bands.df %>% filter(Year == 2010) %>% nrow()
+total.concerts.2011 <- bands.df %>% filter(Year == 2011) %>% nrow()
+total.concerts.2012 <- bands.df %>% filter(Year == 2012) %>% nrow()
+total.concerts.2013 <- bands.df %>% filter(Year == 2013) %>% nrow()
+total.concerts.2014 <- bands.df %>% filter(Year == 2014) %>% nrow()
+total.concerts.2015 <- bands.df %>% filter(Year == 2015) %>% nrow()
+total.concerts.2016 <- bands.df %>% filter(Year == 2016) %>% nrow()
+total.concerts.2017 <- bands.df %>% filter(Year == 2017) %>% nrow()
+total.concerts.2018 <- bands.df %>% filter(Year == 2018) %>% nrow()
+total.concerts.2019 <- bands.df %>% filter(Year == 2019) %>% nrow()
+```
+
+| Year  | Concerts                    | Percentage                                      |
+|-------|-----------------------------|-------------------------------------------------|
+| 2010  | `r total.concerts.2010`     | `r total.concerts.2010 / daysInYear(2010)`      |
+| 2011  | `r total.concerts.2011`     | `r total.concerts.2011 / daysInYear(2011)`      |
+| 2012  | **`r total.concerts.2012`** | **`r total.concerts.2012 / daysInYear(2012)`**  |
+| 2013  | `r total.concerts.2013`     | `r total.concerts.2013 / daysInYear(2013)`      |
+| 2014  | `r total.concerts.2014`     | `r total.concerts.2014 / daysInYear(2014)`      |
+| 2015  | `r total.concerts.2015`     | `r total.concerts.2015 / daysInYear(2015)`      |
+| 2016  | `r total.concerts.2016`     | `r total.concerts.2016 / daysInYear(2016)`      |
+| 2017  | `r total.concerts.2017`     | `r total.concerts.2017 / daysInYear(2017)`      |
+| 2018  | **`r total.concerts.2018`** | **`r total.concerts.2018 / daysInYear(2018)`**  |
+| 2019  | **`r total.concerts.2019`** | **`r total.concerts.2019 / daysInYear(2019)`**  |
+|       |                             |                                                 |
+| Total | `r total.concerts`          | `r total.concerts / total.days.in.decade`       |
+
+
+Menzingers are at the top of the list because they toured through Omaha 7 times in the last decade (that I was able to attend),
+and the other 5 were at festivals. Plus they're just a good band. I'd still see them if they stopped through today.
+It's hard to predict what my future holds for music. I know this year I will see Mayhem at least twice, and At the Gates and Napalm Death once.
+It'll be interesting to see how my tastes evolve and what the touring/festival situation looks like in the 2020s. 
+
+### Most watched bands
+```{r music, include=TRUE}
+knitr::kable(top.5.bands)
+
+bands.df %>% 
+  group_by(City) %>%
+  summarise(Count=n()) %>%
+  arrange(Count) %>%
+  top_n(5) %>%
+  mutate(City=factor(City, levels=City)) %>%
+  ggplot(aes(City, Count)) +
+    geom_bar(stat="identity") +
+    xlab("City") + 
+    ylab("Concerts seen") +
+    ggtitle("Concerts by city (Top 5)") 
+```
+
+I think if I continue to go to MDF, Baltimore will surpass Omaha as the place I've seen the most bands within the next few years.
+I have already decided on ending my time with 70000 Tons, so the cruise is most likely out from here on, unless they bring Barge back.
+I had tossed the idea around of returning to the Fest, but I think that has definitely run its course for me.
+
+```{r music.by.day, include=TRUE}
+bands.df %>%
+  ggplot(aes(x=Day)) +
+    geom_bar(aes(y=..count..)) +
+    # scale_fill_brewer(palette="Blues") +
+    xlab("Day of Week") + 
+    ylab("Concerts seen") +
+    ggtitle("Concerts by day of week") + 
+    theme_bw() + 
+    theme(plot.title = element_text(size=12))
+```
+
+There are a couple reasons for Monday-Wednesday being so low. First, I see most of my concerts at festivals, which
+start no earlier than Thursday. Second, if there are local shows, I am less likely to go to them early in the week
+because I don't like to mess with my sleep schedule. So this chart makes perfect sense to me.
+
+```{r music.years, include=TRUE, fig.height=4}
+bands.by.year.by.day %>%
+  ggplot(aes(Day, Count, group=Year, colour=Year)) +
+    geom_jitter(stat="identity", width = 0.15) +
+    xlab("Day of Week") + 
+    ylab("Concerts") +
+    ggtitle("Days at concerts by day of week by year")
+
+```
+
+\pagebreak
+
+# Tattoos
+
+Predicting more tattoos for 2020 and beyond! I took a break from tattoos in 2018 and 2019. This was because I
+had become obsessed with running, and nothing else seemed important. Also, with full sleeves, I was pretty happy
+with my current work and also out of ideas. But that is changing this year as I start on my legs. 
+
+```{r tattoos, include=TRUE}
+
+tattoos.df %>%
+  ggplot(aes(x=Year)) +
+    geom_bar(aes(y=Hours), stat="identity") +
+    # scale_fill_brewer(palette="Blues") +
+    xlab("Year") + 
+    ylab("Hours") +
+    ggtitle("Hours getting tattooed") + 
+    theme_bw() + 
+    theme(plot.title = element_text(size=12))
+```
+
+\pagebreak
+
+# Races
+
+Obviously races exploded in 2018 and 2019 with my discovery of ultrarunning. I love the challenge 
+and even though it often hurts, finishing is such a great reward in itself that by the next day, I've already forgotten
+about the pain and am signing up for another. There's also a travel aspect to many of these races, which adds to the fun.
+In 2020 and beyond, I want to expand my distances and nab a few more PRs.
+
+```{r races, include=TRUE}
+
+ggplot(races.df, aes(x=Year)) +
+        geom_bar(aes(y=..count..)) +
+            # scale_fill_brewer(palette="Blues") +
+            xlab("Year") + 
+            ylab("Races") +
+            ggtitle("Races run by year") + 
+            theme_bw() + 
+            theme(plot.title = element_text(size=12))
+
+ggplot(races.df, aes(x=Year, y=Distance)) +
+            geom_bar(stat="identity") +
+            xlab("Year") + 
+            ylab("Distance") +
+            ggtitle("Distance run by year") + 
+            theme_bw() + 
+            theme(plot.title = element_text(size=12))
+```
+
+## Fastest races
+
+I had a couple really good races in 2019. I managed to tie my PR at the 5K with the Rust Buster. 
+I also established some stout PRs, at the mile (5:42) and the half-marathon (1:29:05). Those will
+be tough to beat, but I'd like to beat them all, and add a PR at the Marathon distance as well. 
+Additionally, I'm planning on doing at least one 100 miler in 2020.
+
+```{r top.races, include=TRUE}
+races.df %>% 
+  select(Date, Race, Pace, Time, Overall) %>% 
+  arrange(Pace) %>% mutate(n=1:50) %>% 
+  filter(n < 11) %>%
+  select(Date, Race, Time, Pace) %>%
+  knitr::kable()
+```
+
+\pagebreak
+
+# Weight
+
+It is evident that this chart is directly correlated with my races. The high number of
+long distance ultras in 2018 and 2019 have dropped the weight and kept it off. The
+readings were mostly sparse before 2018 because I would only weigh in once in a while.
+In 2018 I bought a Withings WiFi scale so I am able to capture readings much more frequently with ease.
+
+```{r weight, include=TRUE}
+weight.df %>%
+  ggplot(aes(x=Date, y=Weight)) +
+  geom_line(stat="identity") +
+  xlab("Year") + 
+  ylab("Weight") +
+  ggtitle("Weight by year") 
+```
+
+\pagebreak
+
+# Happiness
+
+I did my best to assign a happiness score to each day of the year for the past decade.
+0 is baseline, neither happy nor unhappy (think: driving to work on a Wednesday and traffic is mild). 
+10 is extremely happy, and -10 is extremely unhappy. 
+
+Obviously, the heavier I am, the more unhappy I am. This is proven here. 
+
+```{r happiness.weight, include=TRUE}
+all.df %>%
+  filter(!is.na(Weight)) %>%
+  mutate(Weight=round(Weight)) %>%
+  select(Weight, Happiness) %>%
+  group_by(Weight) %>%
+  summarise(HappinessAvg=mean(Happiness)) %>%
+  ggplot(aes(Weight, HappinessAvg)) +
+    geom_point() +
+    geom_smooth() +
+    xlab("Weight") + 
+    ylab("Happiness") +
+    ggtitle("Happiness by Weight") 
+
+```
+
+# Future Enhancements
+
+As I look to the 2020s, how could I improve this system for the 2030s? 
+
+The most obvious thing is data collection. I hadn't started really documenting anything until 2014. So there was a lot of filling in the blanks
+that needed to be done. Remembering to journal things regularly can help with future decision making. 
+
+Next, a more holistic view is needed. If you look at my categories here, they are mostly based on leisure. Looking at education and
+my career, as well as interpersonal relationships would have a huge impact on my scores. I don't often think to document how my day went at work,
+or how much I am loving or hating school (though that is pretty much over for the foreseeable future). What I need is one of those 
+survey button machines that you see in airport restrooms. They show a happiness scale using smiley and frowny faces. Just punch that thing before bed
+every night and boom, there's my score. This might be my next project.
+
+Finally, as this is mostly a BI project, it would be cool to turn this into a prescriptive analytics endeavor. How is this information actionable?
+Capturing data with the intent of using it to improve things would be more useful. 
+
